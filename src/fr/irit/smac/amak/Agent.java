@@ -20,10 +20,12 @@ import fr.irit.smac.amak.tools.Log;
  *            The kind of Environment the agent AND the Amas refer to
  */
 public abstract class Agent<A extends Amas<E>, E extends Environment> implements Runnable {
+	
 	/**
 	 * Neighborhood of the agent (must refer to the same couple amas, environment
 	 */
 	protected final List<Agent<A, E>> neighborhood;
+
 	/**
 	 * Criticalities of the neighbors (and it self) as perceived at the beginning of
 	 * the agent's cycle
@@ -32,11 +34,16 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	/**
 	 * Last calculated criticality of the agent
 	 */
-	private double criticality;
+	protected double criticality;
 	/**
 	 * Amas the agent belongs to
 	 */
 	protected final A amas;
+	
+	/**
+	 * TODO comment
+	 */
+	protected final AgentBehaviorStates<A,E> behaviorStates;
 	/**
 	 * Unique index to give unique id to each agent
 	 */
@@ -103,10 +110,12 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 * @param params
 	 *            The params to initialize the agent
 	 */
-	public Agent(A amas, Object... params) {
+	public Agent(A amas, AgentBehaviorStates<A,E> behaviorStates, Object... params) {
+		this.amas = amas;
+		this.behaviorStates = behaviorStates;
 		this.id = uniqueIndex++;
 		this.params = params;
-		this.amas = amas;
+		
 		neighborhood = new ArrayList<>();
 		neighborhood.add(this);
 		onInitialization();
@@ -174,30 +183,7 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 
 	}
 
-	/**
-	 * This method corresponds to the perception phase of the agents and must be
-	 * overridden
-	 */
-	protected void onPerceive() {
-
-	}
-
-	/**
-	 * This method corresponds to the decision phase of the agents and must be
-	 * overridden
-	 */
-	protected void onDecide() {
-
-	}
-
-	/**
-	 * This method corresponds to the action phase of the agents and must be
-	 * overridden
-	 */
-	protected void onAct() {
-
-	}
-
+	
 	/**
 	 * In this method the agent should expose some variables with its neighbor
 	 */
@@ -317,6 +303,9 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 			amas.informThatAgentDecisionAndActionAreFinished();
 		}
 	}
+	
+	/******************************************************************************************/
+	
 	public void onePhaseCycle() {
 		currentPhase = Phase.PERCEPTION;
 		phase1();
@@ -344,6 +333,8 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 		onAgentCycleEnd();
 		currentPhase = Phase.DECISION_AND_ACTION_DONE;
 	}
+	
+	/********************************************************************************************/
 
 	/**
 	 * Determine which phase comes after another
@@ -371,35 +362,7 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 		return computeExecutionOrderLayer() * 10000 + amas.getEnvironment().getRandom().nextInt(10000);
 	}
 
-	/**
-	 * Perceive, decide and act
-	 */
-	void perceive() {
-		for (Agent<A, E> agent : neighborhood) {
-			criticalities.put(agent, agent.criticality);
-		}
-		onPerceive();
-		// Criticality of agent should be updated after perception AND after action
-		criticality = computeCriticality();
-		criticalities.put(this, criticality);
-	}
-
-	/**
-	 * A combination of decision and action as called by the framework
-	 */
-	private final void decideAndAct() {
-		onDecideAndAct();
-
-		criticality = computeCriticality();
-	}
-
-	/**
-	 * Decide and act These two phases can often be grouped
-	 */
-	protected void onDecideAndAct() {
-		onDecide();
-		onAct();
-	}
+	
 
 	/**
 	 * Convenient method giving the most critical neighbor at a given moment
@@ -492,5 +455,35 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 
 	public boolean isSynchronous() {
 		return synchronous ;
+	}
+	
+	/**
+	 * Getter for the criticality
+	 * 
+	 * @return the criticality
+	 */
+	
+	public double getCriticality() {
+		return criticality;
+	}
+	
+	/**
+	 * Getter for the neighborhood
+	 * 
+	 * @return the neighborhood
+	 */
+
+	public List<Agent<A, E>> getNeighborhood() {
+		return neighborhood;
+	}
+	
+	/**
+	 * Getter for the criticalities
+	 * 
+	 * @return the criticalities
+	 */
+
+	public Map<Agent<A, E>, Double> getCriticalities() {
+		return criticalities;
 	}
 }
