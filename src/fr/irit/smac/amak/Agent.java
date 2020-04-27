@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import fr.irit.smac.amak.AgentPhase.Phase;
 import fr.irit.smac.amak.Amas.ExecutionPolicy;
 import fr.irit.smac.amak.tools.Log;
 
@@ -44,6 +45,11 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 * TODO comment
 	 */
 	protected final AgentBehaviorStates<A,E> behaviorStates;
+	
+	/**
+	 * TODO comment
+	 */
+	protected final AgentPhase<A,E> agentPhase;
 	/**
 	 * Unique index to give unique id to each agent
 	 */
@@ -64,40 +70,6 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 */
 	protected Object[] params;
 
-	/**
-	 * These phases are used to synchronize agents on phase
-	 * 
-	 * @see fr.irit.smac.amak.Amas.ExecutionPolicy
-	 * @author perles
-	 *
-	 */
-	public enum Phase {
-		/**
-		 * Agent is perceiving
-		 */
-		PERCEPTION,
-		/**
-		 * Agent is deciding and acting
-		 */
-		DECISION_AND_ACTION,
-		/**
-		 * Agent haven't started to perceive, decide or act
-		 */
-		INITIALIZING,
-		/**
-		 * Agent is ready to decide
-		 */
-		PERCEPTION_DONE,
-		/**
-		 * Agent is ready to perceive or die
-		 */
-		DECISION_AND_ACTION_DONE
-	}
-
-	/**
-	 * The current phase of the agent {@link Phase}
-	 */
-	protected Phase currentPhase = Phase.INITIALIZING;
 	
 	private boolean synchronous = true;
 
@@ -110,9 +82,10 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 * @param params
 	 *            The params to initialize the agent
 	 */
-	public Agent(A amas, AgentBehaviorStates<A,E> behaviorStates, Object... params) {
+	public Agent(A amas, Object... params) {
 		this.amas = amas;
-		this.behaviorStates = behaviorStates;
+		this.behaviorStates = new AgentBehaviorStates<>(this);
+		this.agentPhase = new AgentPhase<>(this);
 		this.id = uniqueIndex++;
 		this.params = params;
 		
@@ -156,7 +129,7 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	}
 
 	protected void setAsynchronous() {
-		if (currentPhase != Phase.INITIALIZING)
+		if (agentPhase.currentPhase != Phase.INITIALIZING)
 			Log.defaultLog.fatal("AMAK", "Asynchronous mode must be set during the initialization");
 		this.synchronous = false;
 	}
@@ -169,19 +142,6 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 		return 0;
 	}
 
-	/**
-	 * This method is called at the beginning of an agent's cycle
-	 */
-	protected void onAgentCycleBegin() {
-
-	}
-
-	/**
-	 * This method is called at the end of an agent's cycle
-	 */
-	protected void onAgentCycleEnd() {
-
-	}
 
 	
 	/**
@@ -284,8 +244,8 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 		ExecutionPolicy executionPolicy = amas.getExecutionPolicy();
 		if (executionPolicy == ExecutionPolicy.TWO_PHASES) {
 
-			currentPhase = nextPhase();
-			switch (currentPhase) {
+			agentPhase.currentPhase = nextPhase();
+			switch (agentPhase.currentPhase) {
 			case PERCEPTION:
 				phase1();
 				amas.informThatAgentPerceptionIsFinished();
@@ -295,7 +255,7 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 				amas.informThatAgentDecisionAndActionAreFinished();
 				break;
 			default:
-				Log.defaultLog.fatal("AMAK", "An agent is being run in an invalid phase (%s)", currentPhase);
+				Log.defaultLog.fatal("AMAK", "An agent is being run in an invalid phase (%s)", agentPhase.currentPhase);
 			}
 		} else if (executionPolicy == ExecutionPolicy.ONE_PHASE) {
 			onePhaseCycle();
@@ -307,31 +267,31 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	/******************************************************************************************/
 	
 	public void onePhaseCycle() {
-		currentPhase = Phase.PERCEPTION;
+		agentPhase.currentPhase = Phase.PERCEPTION;
 		phase1();
-		currentPhase = Phase.DECISION_AND_ACTION;
+		agentPhase.currentPhase = Phase.DECISION_AND_ACTION;
 		phase2();
 	}
 	/**
 	 * This method represents the perception phase of the agent
 	 */
 	protected final void phase1() {
-		onAgentCycleBegin();
-		perceive();
-		currentPhase = Phase.PERCEPTION_DONE;
+		agentPhase.onAgentCycleBegin();
+		behaviorStates.perceive();
+		agentPhase.currentPhase = Phase.PERCEPTION_DONE;
 	}
 
 	/**
 	 * This method represents the decisionAndAction phase of the agent
 	 */
 	protected final void phase2() {
-		decideAndAct();
+		behaviorStates.decideAndAct();
 		executionOrder = _computeExecutionOrder();
 		onExpose();
 		if (!Configuration.commandLineMode)
 			onUpdateRender();
-		onAgentCycleEnd();
-		currentPhase = Phase.DECISION_AND_ACTION_DONE;
+		agentPhase.onAgentCycleEnd();
+		agentPhase.currentPhase = Phase.DECISION_AND_ACTION_DONE;
 	}
 	
 	/********************************************************************************************/
@@ -342,7 +302,7 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 * @return the next phase
 	 */
 	private Phase nextPhase() {
-		switch (currentPhase) {
+		switch (agentPhase.currentPhase) {
 		case PERCEPTION_DONE:
 			return Phase.DECISION_AND_ACTION;
 		case INITIALIZING:
@@ -424,15 +384,6 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	@Override
 	public String toString() {
 		return String.format("Agent #%d", id);
-	}
-
-	/**
-	 * Getter for the current phase of the agent
-	 * 
-	 * @return the current phase
-	 */
-	public Phase getCurrentPhase() {
-		return currentPhase;
 	}
 
 	/**

@@ -4,6 +4,10 @@ public class AgentBehaviorStates<A extends Amas<E>, E extends Environment> {
 	
 	private Agent<A,E> agent;
 	
+	public AgentBehaviorStates(Agent<A,E> agent) {
+		this.agent = agent;
+	}
+	
 	/**
 	 * This method corresponds to the perception phase of the agents and must be
 	 * overridden
@@ -44,7 +48,7 @@ public class AgentBehaviorStates<A extends Amas<E>, E extends Environment> {
 	/**
 	 * A combination of decision and action as called by the framework
 	 */
-	private final void decideAndAct() {
+	protected final void decideAndAct() {
 		onDecideAndAct();
 
 		agent.criticality = agent.computeCriticality();
