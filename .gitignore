@@ -6,3 +6,7 @@ cache/
 
 # Allow Additional Libraries
 !/AdditionalLibraries/**
+
+# ignore idea settings
+.idea
+*.iml

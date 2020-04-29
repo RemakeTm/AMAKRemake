@@ -9,6 +9,8 @@
 	<packaging>jar</packaging>
 
 	<properties>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
 		<skip.assembly>false</skip.assembly>
 		<main.class>fr.irit.smac.amak.examples.philosophers.PhilosophersLaunchExample</main.class>
 	</properties>
@@ -24,6 +26,14 @@
 			<groupId>org.jfree</groupId>
 			<artifactId>jfreechart-fx</artifactId>
 			<version>1.0.1</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.6.2</version>
+			<scope>test</scope>
 		</dependency>
 
 		<!-- Local jars dependencies -->
