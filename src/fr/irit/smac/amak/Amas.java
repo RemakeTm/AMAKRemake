@@ -197,7 +197,7 @@ public class Amas<E extends Environment> implements Schedulable {
 
 	private void runAsynchronousAgent(Agent<?, E> agent) {
 		executor.execute(() -> {
-			agent.onePhaseCycle();
+			agent.agentPhase.onePhaseCycle();
 			if (scheduler.isRunning() && agents.contains(agent)) {
 				try {
 					Thread.sleep(scheduler.getSleep());

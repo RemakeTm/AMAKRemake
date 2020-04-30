@@ -1,12 +1,12 @@
 package fr.irit.smac.amak;
 
-public class AgentBehaviorStates<A extends Amas<E>, E extends Environment> {
-	
-	private Agent<A,E> agent;
-	
-	public AgentBehaviorStates(Agent<A,E> agent) {
-		this.agent = agent;
-	}
+	public class AgentBehaviorStates<A extends Amas<E>, E extends Environment> {
+		
+		protected Agent<A,E> agent;
+		
+		public void setAgent(Agent<A,E> agent) {
+			this.agent = agent;
+		}
 	
 	/**
 	 * This method corresponds to the perception phase of the agents and must be
@@ -61,6 +61,7 @@ public class AgentBehaviorStates<A extends Amas<E>, E extends Environment> {
 		onDecide();
 		onAct();
 	}
+
 
 
 }

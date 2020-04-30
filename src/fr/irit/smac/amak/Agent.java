@@ -20,7 +20,7 @@ import fr.irit.smac.amak.tools.Log;
  * @param <E>
  *            The kind of Environment the agent AND the Amas refer to
  */
-public abstract class Agent<A extends Amas<E>, E extends Environment> implements Runnable {
+public class Agent<A extends Amas<E>, E extends Environment> implements Runnable {
 	
 	/**
 	 * Neighborhood of the agent (must refer to the same couple amas, environment
@@ -32,24 +32,27 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 * the agent's cycle
 	 */
 	protected final Map<Agent<A, E>, Double> criticalities = new HashMap<>();
+	
 	/**
 	 * Last calculated criticality of the agent
 	 */
 	protected double criticality;
+	
 	/**
 	 * Amas the agent belongs to
 	 */
 	protected final A amas;
+
+	/**
+	 * TODO comment
+	 */
+	protected AgentBehaviorStates<A,E> behaviorStates;
 	
 	/**
 	 * TODO comment
 	 */
-	protected final AgentBehaviorStates<A,E> behaviorStates;
+	protected AgentPhase<A,E> agentPhase;
 	
-	/**
-	 * TODO comment
-	 */
-	protected final AgentPhase<A,E> agentPhase;
 	/**
 	 * Unique index to give unique id to each agent
 	 */
@@ -59,11 +62,13 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 * The id of the agent
 	 */
 	private final int id;
+	
 	/**
 	 * The order of execution of the agent as computed by
 	 * {@link Agent#_computeExecutionOrder()}
 	 */
-	private int executionOrder;
+	protected int executionOrder;
+	
 	/**
 	 * The parameters that can be user in the initialization process
 	 * {@link Agent#onInitialization()}
@@ -84,8 +89,6 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 	 */
 	public Agent(A amas, Object... params) {
 		this.amas = amas;
-		this.behaviorStates = new AgentBehaviorStates<>(this);
-		this.agentPhase = new AgentPhase<>(this);
 		this.id = uniqueIndex++;
 		this.params = params;
 		
@@ -244,74 +247,26 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 		ExecutionPolicy executionPolicy = amas.getExecutionPolicy();
 		if (executionPolicy == ExecutionPolicy.TWO_PHASES) {
 
-			agentPhase.currentPhase = nextPhase();
+			agentPhase.currentPhase = agentPhase.nextPhase();
 			switch (agentPhase.currentPhase) {
 			case PERCEPTION:
-				phase1();
+				agentPhase.phase1();
 				amas.informThatAgentPerceptionIsFinished();
 				break;
 			case DECISION_AND_ACTION:
-				phase2();
+				agentPhase.phase2();
 				amas.informThatAgentDecisionAndActionAreFinished();
 				break;
 			default:
 				Log.defaultLog.fatal("AMAK", "An agent is being run in an invalid phase (%s)", agentPhase.currentPhase);
 			}
 		} else if (executionPolicy == ExecutionPolicy.ONE_PHASE) {
-			onePhaseCycle();
+			agentPhase.onePhaseCycle();
 			amas.informThatAgentPerceptionIsFinished();
 			amas.informThatAgentDecisionAndActionAreFinished();
 		}
 	}
 	
-	/******************************************************************************************/
-	
-	public void onePhaseCycle() {
-		agentPhase.currentPhase = Phase.PERCEPTION;
-		phase1();
-		agentPhase.currentPhase = Phase.DECISION_AND_ACTION;
-		phase2();
-	}
-	/**
-	 * This method represents the perception phase of the agent
-	 */
-	protected final void phase1() {
-		agentPhase.onAgentCycleBegin();
-		behaviorStates.perceive();
-		agentPhase.currentPhase = Phase.PERCEPTION_DONE;
-	}
-
-	/**
-	 * This method represents the decisionAndAction phase of the agent
-	 */
-	protected final void phase2() {
-		behaviorStates.decideAndAct();
-		executionOrder = _computeExecutionOrder();
-		onExpose();
-		if (!Configuration.commandLineMode)
-			onUpdateRender();
-		agentPhase.onAgentCycleEnd();
-		agentPhase.currentPhase = Phase.DECISION_AND_ACTION_DONE;
-	}
-	
-	/********************************************************************************************/
-
-	/**
-	 * Determine which phase comes after another
-	 * 
-	 * @return the next phase
-	 */
-	private Phase nextPhase() {
-		switch (agentPhase.currentPhase) {
-		case PERCEPTION_DONE:
-			return Phase.DECISION_AND_ACTION;
-		case INITIALIZING:
-		case DECISION_AND_ACTION_DONE:
-		default:
-			return Phase.PERCEPTION;
-		}
-	}
-
 	/**
 	 * Compute the execution order from the layer and a random value. This method
 	 * shouldn't be overridden.
@@ -436,5 +391,13 @@ public abstract class Agent<A extends Amas<E>, E extends Environment> implements
 
 	public Map<Agent<A, E>, Double> getCriticalities() {
 		return criticalities;
+	}
+	
+	public void setBehaviorState(AgentBehaviorStates<A,E> behaviorState) {
+		this.behaviorStates = behaviorState;
+	}
+	
+	public void setAgentPhase(AgentPhase<A,E> agentPhase) {
+		this.agentPhase = agentPhase;
 	}
 }
